@@ -4,7 +4,8 @@ from deep_translator import GoogleTranslator
 
 @register_class(alias="Agent.Patient.GPT")
 class Patient(Agent):
-    def __init__(self, args, patient_profile, medical_records, patient_id=0, translate=False):
+    def __init__(self, args, patient_profile, medical_records, patient_id=0):
+
         engine = registry.get_class("Engine.LiteLLM")(
             openai_api_key=args.patient_openai_api_key, 
             openai_api_base=args.patient_openai_api_base,
@@ -16,7 +17,7 @@ class Patient(Agent):
             presence_penalty=args.patient_presence_penalty
         )
 
-        self.translate = translate
+        self.translate = args.translate
         self.system_message = "你是一个病人。这是你的基本资料。\n" + \
             "{}\n".format(patient_profile)
 

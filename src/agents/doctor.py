@@ -4,7 +4,7 @@ from collections import defaultdict
 import re
 import jsonlines
 from abc import abstractmethod
-
+from deep_translator import GoogleTranslator
 
 @register_class(alias="Agent.Doctor.Base")
 class Doctor(Agent):
@@ -38,12 +38,16 @@ class Doctor(Agent):
         response = self.engine.get_response(messages)
         return response
 
-    def get_diagnosis_by_patient_id(self, patient_id, key="ALL"):
+    def get_diagnosis_by_patient_id(self, patient_id, key="ALL",translate=False):
         if key == "ALL":
             return self.diagnosis[patient_id]
         else:
-            assert key in ["症状", "辅助检查", "诊断结果", "诊断依据", "治疗方案"]
-            return self.diagnosis[patient_id].get(key)
+            if translate:
+                assert key in ["Symptoms", "Auxiliary Examinations", "Diagnosis", "Diagnostic Basis", "Treatment Plan"]
+                return self.diagnosis[patient_id].get(key)    
+            else:            
+                assert key in ["症状", "辅助检查", "诊断结果", "诊断依据", "治疗方案"]
+                return self.diagnosis[patient_id].get(key)
     
     def load_diagnosis(
             self, 
@@ -81,9 +85,13 @@ class Doctor(Agent):
 
     def parse_diagnosis(self, diagnosis):
         struct_diagnosis = {}
+        key_array = []
         diagnosis = diagnosis + "\n#"
-
-        for key in ["症状", "辅助检查", "诊断结果", "诊断依据", "治疗方案"]:
+        if self.translate:
+            key_array = ["Symptoms", "Auxiliary Examinations", "Diagnosis", "Diagnostic Basis", "Treatment Plan"]
+        else:
+            key_array = ["症状", "辅助检查", "诊断结果", "诊断依据", "治疗方案"]
+        for key in key_array:
             diagnosis_part = re.findall("\#{}\#(.*?)\n\#".format(key), diagnosis, re.S)
             if len(diagnosis_part) > 0:
                 diagnosis_part = diagnosis_part[0].strip()
@@ -129,23 +137,45 @@ class Doctor(Agent):
         )
         # revise the diagnosis
         # build the system message
-        system_message = "你是一个专业的医生。\n" + \
-            "你正在为患者做诊断，患者的症状和辅助检查如下：\n" + \
-            "#症状#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="症状")) + \
-            "#辅助检查#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="辅助检查")) + \
-            "下面你将收到一份初步的医疗意见，其中包含诊断结果、诊断依据和治疗方案。\n" + \
-            "(1) 这份医疗意见中可能是正确的，也可能存在谬误，仅供参考。\n" + \
-            "(2) 你需要根据患者的症状和辅助检查的结果，来给出更正确合理的诊断结果、诊断依据和治疗方案。\n" + \
-            "(3) 请你按照下面的格式来输出。\n" + \
-            "#诊断结果#\n(1) xxx\n(2) xxx\n\n" + \
-            "#诊断依据#\n(1) xxx\n(2) xxx\n\n" + \
-            "#治疗方案#\n(1) xxx\n(2) xxx\n"
-        # build the content
-        content = "#诊断结果#\n{}\n\n#诊断依据#\n{}\n\n#治疗方案#\n{}".format(
-            self.get_diagnosis_by_patient_id(patient.id, key="诊断结果"), 
-            self.get_diagnosis_by_patient_id(patient.id, key="诊断依据"), 
-            self.get_diagnosis_by_patient_id(patient.id, key="治疗方案")
-        )
+
+        if self.translate:
+            system_message = "You are a professional doctor.\n" + \
+                "You are diagnosing a patient. The patient's symptoms and auxiliary examinations are as follows:\n" + \
+                "#Symptoms#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="Symptoms")) + \
+                "#Auxiliary Examinations#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="Auxiliary Examinations")) + \
+                "Below you will receive a preliminary medical opinion, which includes the diagnosis, diagnostic basis, and treatment plan.\n" + \
+                "(1) This medical opinion may be correct or may contain errors; it is for reference only.\n" + \
+                "(2) You need to provide a more accurate and reasonable diagnosis, diagnostic basis, and treatment plan based on the patient's symptoms and auxiliary examination results.\n" + \
+                "(3) Please output according to the format below.\n" + \
+                "#Diagnosis#\n(1) xxx\n(2) xxx\n\n" + \
+                "#Diagnostic Basis#\n(1) xxx\n(2) xxx\n\n" + \
+                "#Treatment Plan#\n(1) xxx\n(2) xxx\n"
+            
+            content = "#Diagnosis#\n{}\n\n#Diagnostic Basis#\n{}\n\n#Treatment Plan#\n{}".format(
+                self.get_diagnosis_by_patient_id(patient.id, key="Diagnosis"), 
+                self.get_diagnosis_by_patient_id(patient.id, key="Diagnostic Basis"), 
+                self.get_diagnosis_by_patient_id(patient.id, key="Treatment Plan")
+            )
+
+        else:
+
+            system_message = "你是一个专业的医生。\n" + \
+                "你正在为患者做诊断，患者的症状和辅助检查如下：\n" + \
+                "#症状#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="症状")) + \
+                "#辅助检查#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="辅助检查")) + \
+                "下面你将收到一份初步的医疗意见，其中包含诊断结果、诊断依据和治疗方案。\n" + \
+                "(1) 这份医疗意见中可能是正确的，也可能存在谬误，仅供参考。\n" + \
+                "(2) 你需要根据患者的症状和辅助检查的结果，来给出更正确合理的诊断结果、诊断依据和治疗方案。\n" + \
+                "(3) 请你按照下面的格式来输出。\n" + \
+                "#诊断结果#\n(1) xxx\n(2) xxx\n\n" + \
+                "#诊断依据#\n(1) xxx\n(2) xxx\n\n" + \
+                "#治疗方案#\n(1) xxx\n(2) xxx\n"
+            # build the content
+            content = "#诊断结果#\n{}\n\n#诊断依据#\n{}\n\n#治疗方案#\n{}".format(
+                self.get_diagnosis_by_patient_id(patient.id, key="诊断结果"), 
+                self.get_diagnosis_by_patient_id(patient.id, key="诊断依据"), 
+                self.get_diagnosis_by_patient_id(patient.id, key="治疗方案")
+            )
         # get the revised diagnosis from the doctor
         diagnosis = self.get_response([
             {"role": "system", "content": system_message}, 
@@ -169,30 +199,60 @@ class Doctor(Agent):
     def revise_diagnosis_by_others_in_parallel(self, patient, doctors):
         int_to_char = {0: "A", 1: "B", 2: "C", 3: "D"}
         # load the symptom and examination from the host
-        system_message = "你是一个专业的医生。\n" + \
-            "你正在为患者做诊断，患者的症状和辅助检查如下：\n" + \
-            "#症状#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="症状")) + \
-            "#辅助检查#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="辅助检查")) + \
-            "针对患者的病情，你给出了初步的诊断意见：\n" + \
-            "#诊断结果#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="诊断结果")) + \
-            "#诊断依据#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="诊断依据")) + \
-            "#治疗方案#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="治疗方案")) + \
-            "(1) 下面你将收到来自其他医生的诊断意见，其中也包含诊断结果、诊断依据和治疗方案。你需要批判性地梳理并分析其他医生的诊断意见。\n" + \
-            "(2) 如果你发现其他医生给出的诊断意见有比你的更合理的部分，请吸纳进你的诊断意见中进行改进。\n" + \
-            "(3) 如果你认为你的诊断意见相对于其他医生的更科学合理，请坚持自己的意见保持不变。\n" + \
-            "(4) 请你按照下面的格式来输出。\n" + \
-            "#诊断结果#\n(1) xxx\n(2) xxx\n\n" + \
-            "#诊断依据#\n(1) xxx\n(2) xxx\n\n" + \
-            "#治疗方案#\n(1) xxx\n(2) xxx\n"
-        # build the content
-        content = ""
-        for i, doctor in enumerate(doctors):
-            content += "##医生{}##\n\n#诊断结果#\n{}\n\n#诊断依据#\n{}\n\n#治疗方案#\n{}\n\n".format(
-                doctor.name,
-                doctor.get_diagnosis_by_patient_id(patient.id, key="诊断结果"), 
-                doctor.get_diagnosis_by_patient_id(patient.id, key="诊断依据"), 
-                doctor.get_diagnosis_by_patient_id(patient.id, key="治疗方案")
-            )
+
+        if self.translate:
+            system_message = "You are a professional doctor.\n" + \
+                "You are diagnosing a patient. The patient's symptoms and auxiliary examinations are as follows:\n" + \
+                "#Symptoms#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="Symptoms")) + \
+                "#Auxiliary Examinations#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="Auxiliary Examinations")) + \
+                "Based on the patient's condition, you have provided a preliminary diagnosis:\n" + \
+                "#Diagnosis#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="Diagnosis")) + \
+                "#Diagnostic Basis#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="Diagnostic Basis")) + \
+                "#Treatment Plan#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="Treatment Plan")) + \
+                "(1) Below you will receive diagnostic opinions from other doctors, which also include diagnosis, diagnostic basis, and treatment plan. You need to critically review and analyze these opinions.\n" + \
+                "(2) If you find parts of other doctors' opinions more reasonable than yours, incorporate them into your own to improve your diagnosis.\n" + \
+                "(3) If you believe your diagnosis is more scientific and reasonable than others, stick to your opinion and keep it unchanged.\n" + \
+                "(4) Please output according to the format below.\n" + \
+                "#Diagnosis#\n(1) xxx\n(2) xxx\n\n" + \
+                "#Diagnostic Basis#\n(1) xxx\n(2) xxx\n\n" + \
+                "#Treatment Plan#\n(1) xxx\n(2) xxx\n"
+            
+
+            content = ""
+            for i, doctor in enumerate(doctors):
+                content += "##Doctor{}##\n\n#Diagnosis#\n{}\n\n#Diagnostic Basis#\n{}\n\n#Treatment Plan#\n{}\n\n".format(
+                    doctor.name,
+                    doctor.get_diagnosis_by_patient_id(patient.id, key="Diagnosis"), 
+                    doctor.get_diagnosis_by_patient_id(patient.id, key="Diagnostic Basis"), 
+                    doctor.get_diagnosis_by_patient_id(patient.id, key="Treatment Plan")
+                )
+
+        else: 
+
+            system_message = "你是一个专业的医生。\n" + \
+                "你正在为患者做诊断，患者的症状和辅助检查如下：\n" + \
+                "#症状#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="症状")) + \
+                "#辅助检查#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="辅助检查")) + \
+                "针对患者的病情，你给出了初步的诊断意见：\n" + \
+                "#诊断结果#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="诊断结果")) + \
+                "#诊断依据#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="诊断依据")) + \
+                "#治疗方案#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="治疗方案")) + \
+                "(1) 下面你将收到来自其他医生的诊断意见，其中也包含诊断结果、诊断依据和治疗方案。你需要批判性地梳理并分析其他医生的诊断意见。\n" + \
+                "(2) 如果你发现其他医生给出的诊断意见有比你的更合理的部分，请吸纳进你的诊断意见中进行改进。\n" + \
+                "(3) 如果你认为你的诊断意见相对于其他医生的更科学合理，请坚持自己的意见保持不变。\n" + \
+                "(4) 请你按照下面的格式来输出。\n" + \
+                "#诊断结果#\n(1) xxx\n(2) xxx\n\n" + \
+                "#诊断依据#\n(1) xxx\n(2) xxx\n\n" + \
+                "#治疗方案#\n(1) xxx\n(2) xxx\n"
+            # build the content
+            content = ""
+            for i, doctor in enumerate(doctors):
+                content += "##医生{}##\n\n#诊断结果#\n{}\n\n#诊断依据#\n{}\n\n#治疗方案#\n{}\n\n".format(
+                    doctor.name,
+                    doctor.get_diagnosis_by_patient_id(patient.id, key="诊断结果"), 
+                    doctor.get_diagnosis_by_patient_id(patient.id, key="诊断依据"), 
+                    doctor.get_diagnosis_by_patient_id(patient.id, key="治疗方案")
+                )
         responese = self.get_response([
             {"role": "system", "content": system_message}, 
             {"role": "user", "content": content}
@@ -205,32 +265,63 @@ class Doctor(Agent):
     def revise_diagnosis_by_others_in_parallel_with_critique(self, patient, doctors, host_critique=None):
         # int_to_char = {0: "A", 1: "B", 2: "C", 3: "D"}
         # load the symptom and examination from the host
-        system_message = "你是一个专业的医生{}。\n".format(self.name) + \
-            "你正在为患者做诊断，患者的症状和辅助检查如下：\n" + \
-            "#症状#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="症状")) + \
-            "#辅助检查#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="辅助检查")) + \
-            "针对患者的病情，你给出了初步的诊断意见：\n" + \
-            "#诊断结果#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="诊断结果")) + \
-            "#诊断依据#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="诊断依据")) + \
-            "#治疗方案#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="治疗方案")) + \
-            "(1) 下面你将收到来自其他医生的诊断意见，其中也包含诊断结果、诊断依据和治疗方案。你需要批判性地梳理并分析其他医生的诊断意见。\n" + \
-            "(2) 在这个过程中，请你注意主治医生给出的争议点。\n" + \
-            "(3) 如果你发现其他医生给出的诊断意见有比你的更合理的部分，请吸纳进你的诊断意见中进行改进。\n" + \
-            "(4) 如果你认为你的诊断意见相对于其他医生的更科学合理，请坚持自己的意见保持不变。\n" + \
-            "(5) 请你按照下面的格式来输出。\n" + \
-            "#诊断结果#\n(1) xxx\n(2) xxx\n\n" + \
-            "#诊断依据#\n(1) xxx\n(2) xxx\n\n" + \
-            "#治疗方案#\n(1) xxx\n(2) xxx\n"
-        # build the content
-        content = ""
-        for i, doctor in enumerate(doctors):
-            content += "##医生{}##\n\n#诊断结果#\n{}\n\n#诊断依据#\n{}\n\n#治疗方案#\n{}\n\n".format(
-                doctor.name,
-                doctor.get_diagnosis_by_patient_id(patient.id, key="诊断结果"), 
-                doctor.get_diagnosis_by_patient_id(patient.id, key="诊断依据"), 
-                doctor.get_diagnosis_by_patient_id(patient.id, key="治疗方案")
-            )
-        content += "##主任医生##\n{}".format(host_critique)
+
+        if self.translate:
+            system_message = "You are a professional doctor {}.\n".format(self.name) + \
+                "You are diagnosing a patient. The patient's symptoms and auxiliary examinations are as follows:\n" + \
+                "#Symptoms#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="Symptoms")) + \
+                "#Auxiliary Examinations#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="Auxiliary Examinations")) + \
+                "Based on the patient's condition, you have provided a preliminary diagnosis:\n" + \
+                "#Diagnosis#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="Diagnosis")) + \
+                "#Diagnostic Basis#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="Diagnostic Basis")) + \
+                "#Treatment Plan#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="Treatment Plan")) + \
+                "(1) Below you will receive diagnostic opinions from other doctors, which also include diagnosis, diagnostic basis, and treatment plan. You need to critically review and analyze these opinions.\n" + \
+                "(2) During this process, please pay attention to the controversial points raised by the attending physician.\n" + \
+                "(3) If you find parts of other doctors' opinions more reasonable than yours, incorporate them into your own to improve your diagnosis.\n" + \
+                "(4) If you believe your diagnosis is more scientific and reasonable than others, stick to your opinion and keep it unchanged.\n" + \
+                "(5) Please output according to the format below.\n" + \
+                "#Diagnosis#\n(1) xxx\n(2) xxx\n\n" + \
+                "#Diagnostic Basis#\n(1) xxx\n(2) xxx\n\n" + \
+                "#Treatment Plan#\n(1) xxx\n(2) xxx\n"
+            
+            content = ""
+            for i, doctor in enumerate(doctors):
+                content += "##Doctor{}##\n\n#Diagnosis#\n{}\n\n#Diagnostic Basis#\n{}\n\n#Treatment Plan#\n{}\n\n".format(
+                    doctor.name,
+                    doctor.get_diagnosis_by_patient_id(patient.id, key="Diagnosis"), 
+                    doctor.get_diagnosis_by_patient_id(patient.id, key="Diagnostic Basis"), 
+                    doctor.get_diagnosis_by_patient_id(patient.id, key="Treatment Plan")
+                )
+
+            content += "##Chief Doctor##\n{}".format(host_critique)
+
+        else:
+            system_message = "你是一个专业的医生{}。\n".format(self.name) + \
+                "你正在为患者做诊断，患者的症状和辅助检查如下：\n" + \
+                "#症状#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="症状")) + \
+                "#辅助检查#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="辅助检查")) + \
+                "针对患者的病情，你给出了初步的诊断意见：\n" + \
+                "#诊断结果#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="诊断结果")) + \
+                "#诊断依据#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="诊断依据")) + \
+                "#治疗方案#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="治疗方案")) + \
+                "(1) 下面你将收到来自其他医生的诊断意见，其中也包含诊断结果、诊断依据和治疗方案。你需要批判性地梳理并分析其他医生的诊断意见。\n" + \
+                "(2) 在这个过程中，请你注意主治医生给出的争议点。\n" + \
+                "(3) 如果你发现其他医生给出的诊断意见有比你的更合理的部分，请吸纳进你的诊断意见中进行改进。\n" + \
+                "(4) 如果你认为你的诊断意见相对于其他医生的更科学合理，请坚持自己的意见保持不变。\n" + \
+                "(5) 请你按照下面的格式来输出。\n" + \
+                "#诊断结果#\n(1) xxx\n(2) xxx\n\n" + \
+                "#诊断依据#\n(1) xxx\n(2) xxx\n\n" + \
+                "#治疗方案#\n(1) xxx\n(2) xxx\n"
+            # build the content
+            content = ""
+            for i, doctor in enumerate(doctors):
+                content += "##医生{}##\n\n#诊断结果#\n{}\n\n#诊断依据#\n{}\n\n#治疗方案#\n{}\n\n".format(
+                    doctor.name,
+                    doctor.get_diagnosis_by_patient_id(patient.id, key="诊断结果"), 
+                    doctor.get_diagnosis_by_patient_id(patient.id, key="诊断依据"), 
+                    doctor.get_diagnosis_by_patient_id(patient.id, key="治疗方案")
+                )
+            content += "##主任医生##\n{}".format(host_critique)
 
         # print("doctor: {}".format(self.name))
         # print(content)
@@ -244,7 +335,7 @@ class Doctor(Agent):
             patient_id=patient.id
         )
 
-
+#################################################
 @register_class(alias="Agent.Doctor.GPT")
 class GPTDoctor(Doctor):
     def __init__(self, args=None, doctor_info=None, name="A"):
@@ -261,6 +352,13 @@ class GPTDoctor(Doctor):
         super(GPTDoctor, self).__init__(engine, doctor_info, name=name)
         # elf.engine = build_engine(engine_name=model)
         # print(self.memories[0][1])
+        self.translate = args.translate
+        if args.translate:
+            translator = GoogleTranslator(source='zh-CN', target='en')
+            self.system_message = translator.translate(self.system_message)
+            self.doctor_greet = translator.translate(self.doctor_greet)
+
+
 
     @staticmethod
     def add_parser_args(parser):

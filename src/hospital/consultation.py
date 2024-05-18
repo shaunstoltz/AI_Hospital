@@ -27,11 +27,12 @@ class Consultation:
                 args,
                 patient_profile=patient_profile["profile"],
                 medical_records=patient_profile["medical_record"],
-                patient_id=patient_profile["id"],
+                patient_id=patient_profile["id"]
             )
 
 
             self.patients.append(patient)
+            break
 
 
         
@@ -86,7 +87,7 @@ class Consultation:
         parser.add_argument("--ff_print", default=False, action="store_true", help="print dialog history")
         parser.add_argument("--parallel", default=False, action="store_true", help="parallel diagnosis")
 
-        parser.add_argument("--translate", default=False, help="translate to english")
+        parser.add_argument("--translate", default=False, type=bool, help="translate to english")
 
 
     def remove_processed_patients(self):
@@ -107,12 +108,12 @@ class Consultation:
 
     def run(self):
         self.remove_processed_patients()
-        # st = time.time()
+        st = time.time()
         for patient in tqdm(self.patients):
             self._diagnosis(patient)
             # patient.forget()
             # self.doctor.forget()
-        # print("duration: ", time.time() - st)
+        print("duration: ", time.time() - st)
 
     def parallel_run(self):
         self.remove_processed_patients()
