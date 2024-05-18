@@ -7,10 +7,7 @@ import time
 from litellm import completion
 import litellm
 
-litellm.set_verbose=True
-
-os.environ['GROQ_API_KEY'] = "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"
-os.environ['ANYSCALE_API_KEY'] = "esecret_lnws43xm7p1didv8nzg7wb8qai"
+#litellm.set_verbose=True
 
 @register_class(alias="Engine.LiteLLM")
 class LiteLLMEngine(Engine):
@@ -50,8 +47,8 @@ class LiteLLMEngine(Engine):
                     temperature=self.temperature,
                     max_tokens=self.max_tokens,
                     top_p=self.top_p,
-                    # frequency_penalty=self.frequency_penalty,
-                    # presence_penalty=self.presence_penalty
+                    frequency_penalty=self.frequency_penalty,
+                    presence_penalty=self.presence_penalty
                 )
                 break
             # except openai.BadRequestError:
@@ -69,6 +66,6 @@ class LiteLLMEngine(Engine):
             # else:
             #     i += 1
 
-        print(response)
+        # print(response)
         return response.choices[0].message.content
 

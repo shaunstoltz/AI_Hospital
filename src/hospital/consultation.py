@@ -32,14 +32,8 @@ class Consultation:
 
 
             self.patients.append(patient)
-            break
-
-
-        
-    
+          
         self.reporter = registry.get_class(args.reporter)(args)
-
-
 
         self.medical_director_summary_query = \
             "您能分别总结一下病人的症状和辅助检查的结果，然后给出您的诊断结果、诊断依据和治疗方案吗？" + \
@@ -50,10 +44,6 @@ class Consultation:
             "#诊断依据#\n(1)xx\n(2)xx\n\n" + \
             "#治疗方案#\n(1)xx\n(2)xx" 
         
-
-
-
-
         self.max_conversation_turn = args.max_conversation_turn
         self.delay_between_tasks = args.delay_between_tasks
         self.max_workers = args.max_workers
