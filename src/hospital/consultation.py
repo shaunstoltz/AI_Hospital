@@ -141,14 +141,16 @@ class Consultation:
             print(dialog_history[-1]["content"])
         for turn in range(self.max_conversation_turn):
             patient_response = patient.speak(dialog_history[-1]["role"], dialog_history[-1]["content"])
+           
             dialog_history.append({"turn": turn+1, "role": "Patient", "content": patient_response})
             if self.ff_print:
                 print("--------------------------------------")
                 print(dialog_history[-1]["turn"], dialog_history[-1]["role"])
                 print(dialog_history[-1]["content"])
             if "<结束>" in patient_response: break
-            speak_to, patient_response = patient.parse_role_content(patient_response)
+            if "<End>" in patient_response: break
 
+            speak_to, patient_response = patient.parse_role_content(patient, patient_response)
 
             if speak_to == "医生" or speak_to == "doctor":
                 # doctor_response = input()

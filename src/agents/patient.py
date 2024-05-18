@@ -84,7 +84,7 @@ class Patient(Agent):
             else:
                 speak_to = "doctor"
 
-            response = response.replace("<Speak to the doctor>", "").replace("<Speak to the examiner>", "").strip()
+            responese = responese.replace("<Speak to the doctor>", "").replace("<Speak to the examiner>", "").strip()
 
         else:
             if responese.startswith("<对医生讲>"):

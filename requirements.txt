@@ -3,4 +3,6 @@ openai
 bootstrapped
 transformers
 litellm
-
+jsonlines
+deep_translator
+petals @ git+https://github.com/bigscience-workshop/petals
