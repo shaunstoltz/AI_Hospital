@@ -56,6 +56,7 @@ class CollaborativeConsultation:
         self.save_path = args.save_path
         self.ff_print = args.ff_print
         self.start_time = time.strftime('%Y-%m-%d %H:%M:%S')
+        self.translate = args.translate
 
     @staticmethod
     def add_parser_args(parser: argparse.ArgumentParser):
@@ -74,6 +75,8 @@ class CollaborativeConsultation:
         parser.add_argument("--ff_print", default=False, action="store_true", help="print dialog history")
         parser.add_argument("--parallel", default=False, action="store_true", help="parallel diagnosis")
         parser.add_argument("--discussion_mode", default="Parallel", choices=["Parallel", "Parallel_with_Critique"], help="discussion mode")
+
+        parser.add_argument("--translate", default=False, type=bool, help="translate to english")
 
 
     def run(self):
@@ -124,7 +127,12 @@ class CollaborativeConsultation:
             "diagnosis_in_turn": diagnosis_in_turn,
             "host_critique": host_measurement
         })
-        if host_measurement != '#结束#':
+        
+        host_measurement_checker = '#结束#'
+        if self.translate:
+            host_measurement_checker = "#End#"
+
+        if host_measurement != host_measurement_checker:
             for k in range(self.max_discussion_turn):
                 if self.ff_print:
                     print(k, "host", host_measurement)
@@ -139,7 +147,10 @@ class CollaborativeConsultation:
                         "diagnosis": doctor.get_diagnosis_by_patient_id(patient.id)
                     })
                     if self.ff_print:
+
                         print(k, i, doctor.name, doctor.get_diagnosis_by_patient_id(patient.id, "诊断结果"))
+                        print(k, i, doctor.name, doctor.get_diagnosis_by_patient_id(patient.id, "Diagnosis"))
+
                 host_measurement = self.host.measure_agreement(self.doctors, patient)
                 diagnosis_in_discussion.append({
                     "turn": k+1,
@@ -149,7 +160,7 @@ class CollaborativeConsultation:
                 if self.ff_print:
                     print("host: {}".format(host_measurement))
                     print("-"*100)
-                if host_measurement == '#结束#':
+                if host_measurement == host_measurement_checker:
                     break
         else:
             k = -1

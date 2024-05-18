@@ -18,9 +18,14 @@ class Reporter(Agent):
         )
 
         self.edit_query = True
+        self.translate = args.translate
         if reporter_info is None:
-            self.system_message = \
-                "你是医院的数据库管理员，负责收集、汇总和整理病人的病史和检查数据。\n"
+            if self.translate:
+                self.system_message = \
+                    "You are the hospital's database administrator, responsible for collecting, summarizing, and organizing patients' medical histories and examination data.\n"
+            else:
+                self.system_message = \
+                    "你是医院的数据库管理员，负责收集、汇总和整理病人的病史和检查数据。\n"
         else: self.system_message = reporter_info
         
         super(Reporter, self).__init__(engine)
@@ -38,30 +43,55 @@ class Reporter(Agent):
         parser.add_argument('--reporter_presence_penalty', type=float, default=0, help='presence penalty')
 
     def speak(self, medical_records, content, save_to_memory=False):
-        system_message = self.system_message + '\n\n' + \
-            "这是你收到的病人的检查结果。\n" + \
-            f"#查体#\n{medical_records['查体'].strip()}\n" + \
-            f"#辅助检查#\n{medical_records['辅助检查'].strip()}\n\n" + \
-            "下面会有病人或者医生来查询，你要忠实地按照收到的检查结果，找到对应的项目，并按照下面的格式来回复。\n\n" + \
-            "#检查项目#\n- xxx: xxx\n- xxx: xxx\n#xx检查#\n- xxx: xxx\n- xxx: xxx\n\n" + \
-            "如果无法查询到对应的检查项目则回复：\n" + \
-            "- xxx: 无异常"
-        
-        messages = [
-            {"role": "system", "content": system_message},
-            {"role": "user", "content": "您好，我需要做基因组测序，能否告诉我这些检查结果？"},
-            {"role": "assistant", "content": "#检查项目#\n- 基因组测序"},
-            {"role": "user", "content": content}
-        ]
+
+        if self.translate:
+            system_message = self.system_message + '\n\n' + \
+                "These are the examination results you received for the patient.\n" + \
+                f"#Physical Examination#\n{medical_records['Physical Examination'].strip()}\n" + \
+                f"#Auxiliary Examinations#\n{medical_records['Auxiliary Examinations'].strip()}\n\n" + \
+                "Below, there will be queries from patients or doctors. You need to faithfully follow the received examination results, find the corresponding items, and reply according to the format below.\n\n" + \
+                "#Examination Items#\n- xxx: xxx\n- xxx: xxx\n#xx Examination#\n- xxx: xxx\n- xxx: xxx\n\n" + \
+                "If you cannot find the corresponding examination item, reply with:\n" + \
+                "- xxx: No abnormalities"
+                
+            messages = [
+                {"role": "system", "content": system_message},
+                {"role": "user", "content": "Hello, I need to have genome sequencing done. Can you tell me the results of these tests?"},
+                {"role": "assistant", "content": "#Examination Items#\n- Genome Sequencing"},
+                {"role": "user", "content": content}
+            ]
+
+        else:
+            system_message = self.system_message + '\n\n' + \
+                "这是你收到的病人的检查结果。\n" + \
+                f"#查体#\n{medical_records['查体'].strip()}\n" + \
+                f"#辅助检查#\n{medical_records['辅助检查'].strip()}\n\n" + \
+                "下面会有病人或者医生来查询，你要忠实地按照收到的检查结果，找到对应的项目，并按照下面的格式来回复。\n\n" + \
+                "#检查项目#\n- xxx: xxx\n- xxx: xxx\n#xx检查#\n- xxx: xxx\n- xxx: xxx\n\n" + \
+                "如果无法查询到对应的检查项目则回复：\n" + \
+                "- xxx: 无异常"
+            
+            messages = [
+                {"role": "system", "content": system_message},
+                {"role": "user", "content": "您好，我需要做基因组测序，能否告诉我这些检查结果？"},
+                {"role": "assistant", "content": "#检查项目#\n- 基因组测序"},
+                {"role": "user", "content": content}
+            ]
         
         responese = self.engine.get_response(messages)
         return responese
     
     @staticmethod
-    def parse_content(response):
-        if "#检查项目#" not in response:
-            return False
-        response = re.findall(r"检查项目\#(.+?)\n\n", response, re.S)
+    def parse_content(self, response):
+
+        if self.translate:
+            if "#Examination Items#" not in response:
+                return False
+            response = re.findall(r"Examination Items\#(.+?)\n\n", response, re.S)
+        else: 
+            if "#检查项目#" not in response:
+                return False
+            response = re.findall(r"检查项目\#(.+?)\n\n", response, re.S)
         return response.strip()
 
 
@@ -80,9 +110,15 @@ class ReporterV2(Agent):
         )
 
         self.edit_query = True
+        self.translate = args.translate
         if reporter_info is None:
-            self.system_message = \
-                "你是医院的数据库管理员，负责收集、汇总和整理病人的病史和检查数据。\n"
+
+            if self.translate:
+                self.system_message = \
+                    "You are the hospital's database administrator, responsible for collecting, summarizing, and organizing patients' medical histories and examination data.\n"
+            else:
+                self.system_message = \
+                    "你是医院的数据库管理员，负责收集、汇总和整理病人的病史和检查数据。\n"
         else: self.system_message = reporter_info
         
         super(Reporter, self).__init__(engine)
