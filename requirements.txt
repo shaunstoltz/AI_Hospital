@@ -2,3 +2,5 @@ dashscope
 openai
 bootstrapped
 transformers
+litellm
+

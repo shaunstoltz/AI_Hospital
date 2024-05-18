@@ -1,5 +1,19 @@
 [
     {
+        "doctor_name": "Agent.Doctor.LiteLLM",
+        "doctor_openai_model_name": "anyscale/mistralai/Mixtral-8x22B-Instruct-v0.1",
+        "diagnosis_filepath": "./outputs/dialog_history_iiyi/dialog_history_any_mix_22b.jsonl", 
+        "evaluation_filepath": "outputs/evaluation/evaluation_iiyi_ss.jsonl",
+        "doctor_key": null
+    },    
+    {
+        "doctor_name": "Agent.Doctor.LiteLLM",
+        "doctor_openai_model_name": "anyscale/meta-llama/Meta-Llama-3-70B-Instruct",
+        "diagnosis_filepath": "./outputs/dialog_history_iiyi/dialog_history_any_llama370b.jsonl", 
+        "evaluation_filepath": "outputs/evaluation/evaluation_iiyi_ss.jsonl",
+        "doctor_key": null
+    },
+    {
         "doctor_name": "Agent.Doctor.GPT",
         "doctor_openai_model_name": "gpt-4",
         "diagnosis_filepath": "./outputs/dialog_history_iiyi/dialog_history_gpt4.jsonl", 

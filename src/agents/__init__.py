@@ -2,6 +2,7 @@ from .base_agent import Agent
 from .doctor import (
     Doctor, 
     GPTDoctor, 
+    LiteLLMDoctor,
     ChatGLMDoctor, 
     MinimaxDoctor, 
     WenXinDoctor, 
@@ -18,6 +19,7 @@ __all__ = [
     "Agent",
     "Doctor",
     "GPTDoctor",
+    "LiteLLMDoctor",
     "ChatGLMDoctor",
     "MinimaxDoctor",
     "WenXinDoctor",

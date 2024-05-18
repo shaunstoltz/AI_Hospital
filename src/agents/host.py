@@ -6,7 +6,7 @@ from utils.register import register_class, registry
 @register_class(alias="Agent.Host.GPT")
 class Host(Agent):
     def __init__(self, args, host_info=None):
-        engine = registry.get_class("Engine.GPT")(
+        engine = registry.get_class("Engine.LiteLLM")(
             openai_api_key=args.host_openai_api_key, 
             openai_api_base=args.host_openai_api_base,
             openai_model_name=args.host_openai_model_name, 

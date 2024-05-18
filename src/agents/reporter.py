@@ -6,7 +6,7 @@ from utils.register import register_class, registry
 @register_class(alias="Agent.Reporter.GPT")
 class Reporter(Agent):
     def __init__(self, args, reporter_info=None):
-        engine = registry.get_class("Engine.GPT")(
+        engine = registry.get_class("Engine.LiteLLM")(
             openai_api_key=args.reporter_openai_api_key, 
             openai_api_base=args.reporter_openai_api_base,
             openai_model_name=args.reporter_openai_model_name, 

@@ -13,7 +13,9 @@ from utils.register import register_class, registry
 @register_class(alias="Scenario.Consultation")
 class Consultation:
     def __init__(self, args):
-        patient_database = json.load(open(args.patient_database))
+        with open(args.patient_database, 'r', encoding='utf-8') as f:
+            patient_database = json.load(f)
+        # patient_database = json.load(open(args.patient_database))
         self.args = args
         self.doctor = registry.get_class(args.doctor)(
             args,
@@ -27,9 +29,16 @@ class Consultation:
                 medical_records=patient_profile["medical_record"],
                 patient_id=patient_profile["id"],
             )
+
+
             self.patients.append(patient)
+
+
+        
     
         self.reporter = registry.get_class(args.reporter)(args)
+
+
 
         self.medical_director_summary_query = \
             "您能分别总结一下病人的症状和辅助检查的结果，然后给出您的诊断结果、诊断依据和治疗方案吗？" + \
@@ -39,6 +48,10 @@ class Consultation:
             "#诊断结果#\nxx\n\n" + \
             "#诊断依据#\n(1)xx\n(2)xx\n\n" + \
             "#治疗方案#\n(1)xx\n(2)xx" 
+        
+
+
+
 
         self.max_conversation_turn = args.max_conversation_turn
         self.delay_between_tasks = args.delay_between_tasks
@@ -46,6 +59,18 @@ class Consultation:
         self.save_path = args.save_path
         self.ff_print = args.ff_print
         self.start_time = time.strftime('%Y-%m-%d %H:%M:%S')
+
+        self.translate = args.translate
+
+        if self.translate:
+            self.medical_director_summary_query = \
+                "Can you separately summarize the patient's symptoms and the results of auxiliary examinations, then provide your diagnosis, diagnostic basis, and treatment plan?" + \
+                "Please follow the format below.\n\n" + \
+                "#Symptoms#\n(1)xx\n(2)xx\n\n" + \
+                "#Auxiliary Examinations#\n(1)xx\n(2)xx\n\n" + \
+                "#Diagnosis#\nxx\n\n" + \
+                "#Diagnostic Basis#\n(1)xx\n(2)xx\n\n" + \
+                "#Treatment Plan#\n(1)xx\n(2)xx"            
 
     @staticmethod
     def add_parser_args(parser: argparse.ArgumentParser):
@@ -60,6 +85,9 @@ class Consultation:
         parser.add_argument("--save_path", default="dialog_history.jsonl", help="save path for dialog history")
         parser.add_argument("--ff_print", default=False, action="store_true", help="print dialog history")
         parser.add_argument("--parallel", default=False, action="store_true", help="parallel diagnosis")
+
+        parser.add_argument("--translate", default=False, help="translate to english")
+
 
     def remove_processed_patients(self):
         processed_patient_ids = {}
@@ -102,6 +130,8 @@ class Consultation:
         print("duration: ", time.time() - st)
         
     def _diagnosis(self, patient):
+
+
         dialog_history = [{"turn": 0, "role": "Doctor", "content": self.doctor.doctor_greet}]
         self.doctor.memorize(("assistant", self.doctor.doctor_greet), patient.id)
         if self.ff_print:
@@ -119,11 +149,12 @@ class Consultation:
             if "<结束>" in patient_response: break
             speak_to, patient_response = patient.parse_role_content(patient_response)
 
-            if speak_to == "医生":
+
+            if speak_to == "医生" or speak_to == "doctor":
                 # doctor_response = input()
                 doctor_response = self.doctor.speak(patient_response, patient.id)
                 dialog_history.append({"turn": turn+1, "role": "Doctor", "content": doctor_response})
-            elif speak_to == "检查员":
+            elif speak_to == "检查员" or speak_to == "examiner":
                 reporter_response = self.reporter.speak(patient.medical_records, patient_response)
                 dialog_history.append({"turn": turn+1, "role": "Reporter", "content": reporter_response})
                 doctor_response = self.doctor.speak(reporter_response, patient.id)
@@ -131,7 +162,7 @@ class Consultation:
             else:
                 raise "Wrong!"
             if self.ff_print:
-                if speak_to == "检查员":
+                if speak_to == "检查员" or speak_to == "examiner":
                     print("--------------------------------------")
                     print(dialog_history[-2]["turn"], dialog_history[-2]["role"])
                     print(dialog_history[-2]["content"])
@@ -139,6 +170,9 @@ class Consultation:
                 print(dialog_history[-1]["turn"], dialog_history[-1]["role"])
                 print(dialog_history[-1]["content"])
         
+
+
+
         doctor_response = self.doctor.speak(self.medical_director_summary_query, patient.id)
         dialog_history.append({"turn": turn+1, "role": "Doctor", "content": doctor_response})
         if self.ff_print:

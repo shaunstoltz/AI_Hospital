@@ -14,7 +14,9 @@ from utils.register import registry, register_class
 @register_class(alias="Scenario.CollaborativeConsultation")
 class CollaborativeConsultation:
     def __init__(self, args):
-        patient_database = json.load(open(args.patient_database))
+        with open(args.patient_database, 'r', encoding='utf-8') as f:
+            patient_database = json.load(f)
+        #patient_database = json.load(open(args.patient_database))
         self.args = args
 
         # Load Different Doctor Agents

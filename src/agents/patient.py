@@ -1,11 +1,11 @@
 from .base_agent import Agent
 from utils.register import register_class, registry
-
+from deep_translator import GoogleTranslator
 
 @register_class(alias="Agent.Patient.GPT")
 class Patient(Agent):
-    def __init__(self, args, patient_profile, medical_records, patient_id=0):
-        engine = registry.get_class("Engine.GPT")(
+    def __init__(self, args, patient_profile, medical_records, patient_id=0, translate=False):
+        engine = registry.get_class("Engine.LiteLLM")(
             openai_api_key=args.patient_openai_api_key, 
             openai_api_base=args.patient_openai_api_base,
             openai_model_name=args.patient_openai_model_name, 
@@ -15,6 +15,8 @@ class Patient(Agent):
             frequency_penalty=args.patient_frequency_penalty,
             presence_penalty=args.patient_presence_penalty
         )
+
+        self.translate = translate
         self.system_message = "你是一个病人。这是你的基本资料。\n" + \
             "{}\n".format(patient_profile)
 
@@ -36,7 +38,11 @@ class Patient(Agent):
             "(6) 回答要口语化，尽可能短，提供最主要的信息即可。\n" + \
             "(7) 从<检查员>那里收到信息之后，将内容主动复述给<医生>。\n" + \
             "(8) 当医生给出诊断结果、对应的诊断依据和治疗方案后，在对话的末尾加上特殊字符<结束>。"
-    
+
+        if self.translate:
+            translator = GoogleTranslator(source='zh-CN', target='en')
+            self.system_message = translator.translate(self.system_message)
+
         super(Patient, self).__init__(engine)
         self.id = patient_id
         self.medical_records = medical_records
@@ -66,16 +72,28 @@ class Patient(Agent):
         return responese
     
     @staticmethod
-    def parse_role_content(responese):
+    def parse_role_content(self, responese):
         responese = responese.strip()
 
-        if responese.startswith("<对医生讲>"):
-            speak_to = "医生"
-        elif responese.startswith("<对检查员讲>"):
-            speak_to = "检查员"
+        if self.translate:
+
+            if responese.startswith("<Speak to the doctor>"):
+                speak_to = "doctor"
+            elif responese.startswith("<Speak to the examiner>"):
+                speak_to = "examiner"
+            else:
+                speak_to = "doctor"
+
+            response = response.replace("<Speak to the doctor>", "").replace("<Speak to the examiner>", "").strip()
+
         else:
-            speak_to = "医生"
-            # raise Exception("Response of PatientAgent must start with '<对医生讲>' or '<对检查员讲>', but current repsonse is: {}".format(responese))
-        responese = responese.replace("<对医生讲>", "").replace("<对检查员讲>", "").strip()
+            if responese.startswith("<对医生讲>"):
+                speak_to = "医生"
+            elif responese.startswith("<对检查员讲>"):
+                speak_to = "检查员"
+            else:
+                speak_to = "医生"
+                # raise Exception("Response of PatientAgent must start with '<对医生讲>' or '<对检查员讲>', but current repsonse is: {}".format(responese))
+            responese = responese.replace("<对医生讲>", "").replace("<对检查员讲>", "").strip()            
 
         return speak_to, responese

@@ -248,7 +248,7 @@ class Doctor(Agent):
 @register_class(alias="Agent.Doctor.GPT")
 class GPTDoctor(Doctor):
     def __init__(self, args=None, doctor_info=None, name="A"):
-        engine = registry.get_class("Engine.GPT")(
+        engine = registry.get_class("Engine.LiteLLM")(
             openai_api_key=args.doctor_openai_api_key, 
             openai_api_base=args.doctor_openai_api_base,
             openai_model_name=args.doctor_openai_model_name, 
@@ -259,6 +259,51 @@ class GPTDoctor(Doctor):
             presence_penalty=args.doctor_presence_penalty
         )
         super(GPTDoctor, self).__init__(engine, doctor_info, name=name)
+        # elf.engine = build_engine(engine_name=model)
+        # print(self.memories[0][1])
+
+    @staticmethod
+    def add_parser_args(parser):
+        parser.add_argument('--doctor_openai_api_key', type=str, help='API key for OpenAI')
+        parser.add_argument('--doctor_openai_api_base', type=str, help='API base for OpenAI')
+        parser.add_argument('--doctor_openai_model_name', type=str, help='API model name for OpenAI')
+        parser.add_argument('--doctor_temperature', type=float, default=0.0, help='temperature')
+        parser.add_argument('--doctor_max_tokens', type=int, default=2048, help='max tokens')
+        parser.add_argument('--doctor_top_p', type=float, default=1, help='top p')
+        parser.add_argument('--doctor_frequency_penalty', type=float, default=0, help='frequency penalty')
+        parser.add_argument('--doctor_presence_penalty', type=float, default=0, help='presence penalty')                
+
+    def get_response(self, messages):
+        response = self.engine.get_response(messages)
+        return response
+
+    def speak(self, content, patient_id, save_to_memory=True):
+        memories = self.memories[patient_id]
+
+        messages = [{"role": memory[0], "content": memory[1]} for memory in memories]
+        messages.append({"role": "user", "content": content})
+
+        response = self.get_response(messages)
+
+        self.memorize(("user", content), patient_id)
+        self.memorize(("assistant", response), patient_id)
+
+        return response
+
+@register_class(alias="Agent.Doctor.LiteLLM")
+class LiteLLMDoctor(Doctor):
+    def __init__(self, args=None, doctor_info=None, name="A"):
+        engine = registry.get_class("Engine.LiteLLM")(
+            openai_api_key=args.doctor_openai_api_key, 
+            openai_api_base=args.doctor_openai_api_base,
+            openai_model_name=args.doctor_openai_model_name, 
+            temperature=args.doctor_temperature, 
+            max_tokens=args.doctor_max_tokens,
+            top_p=args.doctor_top_p,
+            frequency_penalty=args.doctor_frequency_penalty,
+            presence_penalty=args.doctor_presence_penalty
+        )
+        super(LiteLLMDoctor, self).__init__(engine, doctor_info, name=name)
         # elf.engine = build_engine(engine_name=model)
         # print(self.memories[0][1])
 
