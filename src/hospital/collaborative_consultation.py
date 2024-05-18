@@ -30,7 +30,8 @@ class CollaborativeConsultation:
             doctor.load_diagnosis(
                 diagnosis_filepath=doctor_args.diagnosis_filepath, 
                 evaluation_filepath=doctor_args.evaluation_filepath,
-                doctor_key=doctor_args.doctor_key
+                doctor_key=doctor_args.doctor_key,
+                translate=args.translate
             )
             self.doctors.append(doctor)
 
@@ -44,6 +45,7 @@ class CollaborativeConsultation:
                 patient_id=patient_profile["id"],
             )
             self.patients.append(patient)
+            break
     
         self.reporter = registry.get_class(args.reporter)(args)
         self.host = registry.get_class(args.host)(args)
@@ -109,7 +111,7 @@ class CollaborativeConsultation:
         diagnosis_in_turn = []
         for i, doctor in enumerate(self.doctors):
             doctor.revise_diagnosis_by_symptom_and_examination(
-                patient, symptom_and_examination)
+                patient, symptom_and_examination, self.translate)
             diagnosis_in_turn.append({
                 "doctor_id": i,
                 "doctor_engine_name": doctor.engine.model_name,

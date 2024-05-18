@@ -17,13 +17,13 @@ class Host(Agent):
             presence_penalty=args.host_presence_penalty
         )
 
-        self.transalte = args.translate
+        self.translate = args.translate
 
         if host_info is None:
             self.system_message = \
                 "你是医院的数据库管理员，负责收集、汇总和整理病人的病史和检查数据。\n"
             
-            if self.transalte:
+            if self.translate:
                 self.system_message = \
                     "You are the hospital's database administrator, responsible for collecting, summarizing, and organizing patients' medical histories and examination data.\n"
 
@@ -56,7 +56,7 @@ class Host(Agent):
                     {"role": "assistant", "content": "#检查项目#\n-基因组测序: 无异常"},
                     {"role": "user", "content": content}]
         
-        if self.transalte:
+        if self.translate:
             messages = [{"role": "system", "content": system_message},
                 {"role": "user", "content": "Hello, I need to have genome sequencing done. Can you tell me the results of these tests?"},
                 {"role": "assistant", "content": "#Examination Items#\n-Genome Sequencing: No abnormalities"},
@@ -71,13 +71,13 @@ class Host(Agent):
         int_to_char = {0: "A", 1: "B", 2: "C", 3: "D", 4: "E", 5: "F"}
         diagnosis_by_different_doctors = ""
 
-        if self.transalte:
+        if self.translate:
             for i, doctor in enumerate(doctors):
                 diagnosis_by_different_doctors += \
                     "##Doctor{}##\n\n".format(int_to_char[i]) + \
-                    "#Diagnosis#\n{}\n\n".format(doctor.get_diagnosis_by_patient_id(patient.id, key="Diagnosis")) + \
-                    "#Diagnostic Basis#\n{}\n\n".format(doctor.get_diagnosis_by_patient_id(patient.id, key="Diagnostic Basis")) + \
-                    "#Treatment Plan#\n{}\n\n".format(doctor.get_diagnosis_by_patient_id(patient.id, key="Treatment Plan")) 
+                    "#Diagnosis#\n{}\n\n".format(doctor.get_diagnosis_by_patient_id(patient.id, key="Diagnosis", translate=self.translate)) + \
+                    "#Diagnostic Basis#\n{}\n\n".format(doctor.get_diagnosis_by_patient_id(patient.id, key="Diagnostic Basis", translate=self.translate)) + \
+                    "#Treatment Plan#\n{}\n\n".format(doctor.get_diagnosis_by_patient_id(patient.id, key="Treatment Plan", translate=self.translate)) 
 
             # build system message
             doctor_names = ["##Doctor{}##".format(int_to_char.get(i)) for i, _ in enumerate(doctors)]
@@ -89,8 +89,8 @@ class Host(Agent):
             system_message = "You are a senior #Chief Doctor#.\n" + \
                 "You are presiding over a consultation regarding a patient's condition, with the following doctors participating: {}.\n".format(doctor_names) + \
                 "The patient's basic information is as follows:\n#Symptoms#\n{}\n\n#Auxiliary Examinations#\n{}\n\n".format(
-                    doctors[0].get_diagnosis_by_patient_id(patient.id, key="Symptoms"),
-                    doctors[0].get_diagnosis_by_patient_id(patient.id, key="Auxiliary Examinations")
+                    doctors[0].get_diagnosis_by_patient_id(patient.id, key="Symptoms", translate=self.translate),
+                    doctors[0].get_diagnosis_by_patient_id(patient.id, key="Auxiliary Examinations", translate=self.translate)
                 ) + \
                 "(1) You need to listen to each doctor's diagnosis report, which includes the patient's #Diagnosis#, #Diagnostic Basis#, and #Treatment Plan#.\n" + \
                 "(2) You need to summarize the information from each doctor and provide a final diagnosis for the patient.\n\n" + \
@@ -134,13 +134,13 @@ class Host(Agent):
         # int_to_char = {0: "A", 1: "B", 2: "C", 3: "D"}
         diagnosis_by_different_doctors = ""
 
-        if self.transalte:
+        if self.translate:
             for i, doctor in enumerate(doctors):
                 diagnosis_by_different_doctors += \
                     "##Doctor{}##\n\n".format(doctor.name) + \
-                    "#Diagnosis#\n{}\n\n".format(doctor.get_diagnosis_by_patient_id(patient.id, key="Diagnosis")) + \
-                    "#Diagnostic Basis#\n{}\n\n".format(doctor.get_diagnosis_by_patient_id(patient.id, key="Diagnostic Basis")) + \
-                    "#Treatment Plan#\n{}\n\n".format(doctor.get_diagnosis_by_patient_id(patient.id, key="Treatment Plan")) 
+                    "#Diagnosis#\n{}\n\n".format(doctor.get_diagnosis_by_patient_id(patient.id, key="Diagnosis", translate=self.translate)) + \
+                    "#Diagnostic Basis#\n{}\n\n".format(doctor.get_diagnosis_by_patient_id(patient.id, key="Diagnostic Basis", translate=self.translate)) + \
+                    "#Treatment Plan#\n{}\n\n".format(doctor.get_diagnosis_by_patient_id(patient.id, key="Treatment Plan", translate=self.translate)) 
 
             # build system message
             doctor_names = ["##Doctor{}##".format(doctor.name) for i, doctor in enumerate(doctors)]
@@ -152,8 +152,8 @@ class Host(Agent):
             system_message = "You are a senior chief doctor.\n" + \
                 "You are presiding over a consultation regarding a patient's condition, with the following doctors participating: {}.\n".format(doctor_names) + \
                 "The patient's basic information is as follows:\n#Symptoms#\n{}\n\n#Auxiliary Examinations#\n{}\n\n".format(
-                    doctors[0].get_diagnosis_by_patient_id(patient.id, key="Symptoms"),
-                    doctors[0].get_diagnosis_by_patient_id(patient.id, key="Auxiliary Examinations")
+                    doctors[0].get_diagnosis_by_patient_id(patient.id, key="Symptoms", translate=self.translate),
+                    doctors[0].get_diagnosis_by_patient_id(patient.id, key="Auxiliary Examinations", translate=self.translate)
                 )
             system_message += "You need to listen to each doctor's diagnosis report, which includes the patient's #Diagnosis#, #Diagnostic Basis#, and #Treatment Plan#.\n\n" + \
                 "Please output according to the format below.\n" + \
@@ -196,7 +196,7 @@ class Host(Agent):
 
         # parse response
 
-        if self.transalte:
+        if self.translate:
             if "#End#" in judgement:
                 judgement = "#End#"
                 return judgement
@@ -208,8 +208,8 @@ class Host(Agent):
                     system_message = "You are a senior chief doctor.\n" + \
                         "You are presiding over a consultation regarding a patient's condition, with the following doctors participating: {}.\n".format(doctor_names) + \
                         "The patient's basic information is as follows:\n#Symptoms#\n{}\n\n#Auxiliary Examinations#\n{}\n\n".format(
-                            doctors[0].get_diagnosis_by_patient_id(patient.id, key="Symptoms"),
-                            doctors[0].get_diagnosis_by_patient_id(patient.id, key="Auxiliary Examinations")
+                            doctors[0].get_diagnosis_by_patient_id(patient.id, key="Symptoms", translate=self.translate),
+                            doctors[0].get_diagnosis_by_patient_id(patient.id, key="Auxiliary Examinations", translate=self.translate)
                         )
                     system_message += "(1) You need to listen to each doctor's diagnosis report, which includes the patient's #Diagnosis#, #Diagnostic Basis#, and #Treatment Plan#.\n" + \
                         "(2) Please list up to 3 points of contention that need to be discussed, in order of importance, in the following format:\n" + \
@@ -255,11 +255,11 @@ class Host(Agent):
         int_to_char = {0: "A", 1: "B", 2: "C", 3: "D"}
         symptom_and_examination_by_diff_doctors = ""
 
-        if self.transalte:
+        if self.translate:
             for i, doctor in enumerate(doctors):
                 symptom_and_examination_by_diff_doctors += "##Doctor{}##\n".format(int_to_char[i])
                 for key in ["Symptoms", "Auxiliary Examinations"]:
-                    value = doctor.get_diagnosis_by_patient_id(patient.id, key=key)
+                    value = doctor.get_diagnosis_by_patient_id(patient.id, key=key,translate=self.translate)
                     if value is not None:
                         symptom_and_examination_by_diff_doctors += "#{}#\n{}\n\n".format(key, value)
 
@@ -340,7 +340,7 @@ class Host(Agent):
         # if some misalignments exist among different doctos
         if structure_result.get("query_to_patient") is not None:
             # role, content, save_to_memory=True
-            if self.transalte:
+            if self.translate:
                 structure_result["patient_response"] = patient.speak(
                     role="doctor", content=structure_result.get("query_to_patient"), save_to_memory=False)
             else:
@@ -348,7 +348,7 @@ class Host(Agent):
                     role="医生", content=structure_result.get("query_to_patient"), save_to_memory=False)
         if structure_result.get("query_to_reporter") is not None:
             structure_result["reporter_response"] = reporter.speak(
-                patient.medical_records, structure_result.get("query_to_reporter"), save_to_memory=False)
+                patient.medical_records, structure_result.get("query_to_reporter"),save_to_memory=False, translate=self.translate)
         # edit the symptom and examination accoring to the response from patient and reporter
         symptom_and_examination = self.edit_symptom_and_examination(structure_result)
         return symptom_and_examination
@@ -357,7 +357,7 @@ class Host(Agent):
         values = {}
         response = response.strip() + '\n\n'
 
-        if self.transalte:
+        if self.translate:
             for key in ["Symptoms", "Auxiliary Examinations", "Ask the Patient", "Ask the Examiner"]:
                 value = re.findall(r"\#{}\#(.*?)\n\n".format(key), response, re.S)
                 if len(value) >= 1:
@@ -411,7 +411,7 @@ class Host(Agent):
     def edit_symptom_and_examination(self, structure_result):
         # build system message for different situations
 
-        if self.transalte:
+        if self.translate:
             if structure_result.get("query_to_patient") is not None and structure_result.get("query_to_reporter") is not None:
                 system_message = "You are a senior chief doctor.\n" + \
                     "You now need to correct ambiguities and errors in the patient's ##Symptoms## based on the #questions# and #answers# in ##Ask the Patient##." + \

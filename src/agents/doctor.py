@@ -21,9 +21,8 @@ class Doctor(Agent):
                 
         else: self.system_message = doctor_info
 
-        self.name = name
-
         self.doctor_greet = "您好，有哪里不舒服？"
+        self.name = name
         self.engine = engine
         def default_value_factory():
             return [("system", self.system_message)]
@@ -41,10 +40,17 @@ class Doctor(Agent):
     def get_diagnosis_by_patient_id(self, patient_id, key="ALL",translate=False):
         if key == "ALL":
             return self.diagnosis[patient_id]
+        
+
         else:
             if translate:
+                translator = GoogleTranslator(source='zh-CN', target='en')
+                #assert key in ["症状", "辅助检查", "诊断结果", "诊断依据", "治疗方案"]
                 assert key in ["Symptoms", "Auxiliary Examinations", "Diagnosis", "Diagnostic Basis", "Treatment Plan"]
-                return self.diagnosis[patient_id].get(key)    
+                try:
+                    return translator.translate(self.diagnosis[patient_id].get(key))
+                except:
+                    return None
             else:            
                 assert key in ["症状", "辅助检查", "诊断结果", "诊断依据", "治疗方案"]
                 return self.diagnosis[patient_id].get(key)
@@ -55,20 +61,22 @@ class Doctor(Agent):
             patient_id=None, 
             diagnosis_filepath=None, 
             evaluation_filepath=None,
-            doctor_key=None
+            doctor_key=None,
+            translate=False
         ):
         if diagnosis is not None and patient_id is not None:
             if isinstance(diagnosis, dict):
+                
                 self.diagnosis[patient_id].update(diagnosis)
             else:
-                self.diagnosis[patient_id].update(self.parse_diagnosis(diagnosis))
+                self.diagnosis[patient_id].update(self.parse_diagnosis(diagnosis,translate=translate))
         elif diagnosis_filepath is not None:
             self.id = diagnosis_filepath
             if diagnosis_filepath.endswith("jsonl"):
                 with jsonlines.open(diagnosis_filepath, "r") as fr:
                     for line in fr:
                         diagnosis = line["dialog_history"][-1]["content"]
-                        self.load_diagnosis(diagnosis=diagnosis, patient_id=line["patient_id"])
+                        self.load_diagnosis(diagnosis=diagnosis, patient_id=line["patient_id"], translate=translate)
                 fr.close()
         elif evaluation_filepath is not None:
             assert doctor_key is not None
@@ -78,16 +86,18 @@ class Doctor(Agent):
                     for line in fr:
                         assert line["doctor_name"] == doctor_key
                         diagnosis = line["doctor_diagnosis"]["diagnosis"]
-                        self.load_diagnosis(diagnosis=diagnosis, patient_id=line["patient_id"])
+                        self.diagnosis
+                        self.load_diagnosis(diagnosis=diagnosis, patient_id=line["patient_id"],translate=translate)
                 fr.close()
         else:
             raise Exception("Wrong!")
 
-    def parse_diagnosis(self, diagnosis):
+    def parse_diagnosis(self, diagnosis, translate=False):
         struct_diagnosis = {}
         key_array = []
         diagnosis = diagnosis + "\n#"
-        if self.translate:
+        if translate:
+            #key_array = ["症状", "辅助检查", "诊断结果", "诊断依据", "治疗方案"]
             key_array = ["Symptoms", "Auxiliary Examinations", "Diagnosis", "Diagnostic Basis", "Treatment Plan"]
         else:
             key_array = ["症状", "辅助检查", "诊断结果", "诊断依据", "治疗方案"]
@@ -129,7 +139,7 @@ class Doctor(Agent):
 
         return responese
 
-    def revise_diagnosis_by_symptom_and_examination(self, patient, symptom_and_examination):
+    def revise_diagnosis_by_symptom_and_examination(self, patient, symptom_and_examination, translate=False):
         # load the symptom and examination from the host
         self.load_diagnosis(
             diagnosis=symptom_and_examination, 
@@ -138,11 +148,11 @@ class Doctor(Agent):
         # revise the diagnosis
         # build the system message
 
-        if self.translate:
+        if translate:
             system_message = "You are a professional doctor.\n" + \
                 "You are diagnosing a patient. The patient's symptoms and auxiliary examinations are as follows:\n" + \
-                "#Symptoms#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="Symptoms")) + \
-                "#Auxiliary Examinations#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="Auxiliary Examinations")) + \
+                "#Symptoms#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="症状"), translate) + \
+                "#Auxiliary Examinations#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="辅助检查"), translate) + \
                 "Below you will receive a preliminary medical opinion, which includes the diagnosis, diagnostic basis, and treatment plan.\n" + \
                 "(1) This medical opinion may be correct or may contain errors; it is for reference only.\n" + \
                 "(2) You need to provide a more accurate and reasonable diagnosis, diagnostic basis, and treatment plan based on the patient's symptoms and auxiliary examination results.\n" + \
@@ -152,9 +162,9 @@ class Doctor(Agent):
                 "#Treatment Plan#\n(1) xxx\n(2) xxx\n"
             
             content = "#Diagnosis#\n{}\n\n#Diagnostic Basis#\n{}\n\n#Treatment Plan#\n{}".format(
-                self.get_diagnosis_by_patient_id(patient.id, key="Diagnosis"), 
-                self.get_diagnosis_by_patient_id(patient.id, key="Diagnostic Basis"), 
-                self.get_diagnosis_by_patient_id(patient.id, key="Treatment Plan")
+                self.get_diagnosis_by_patient_id(patient.id, key="Diagnosis", translate=translate), 
+                self.get_diagnosis_by_patient_id(patient.id, key="Diagnostic Basis", translate=translate), 
+                self.get_diagnosis_by_patient_id(patient.id, key="Treatment Plan",translate=translate)
             )
 
         else:
@@ -203,12 +213,12 @@ class Doctor(Agent):
         if self.translate:
             system_message = "You are a professional doctor.\n" + \
                 "You are diagnosing a patient. The patient's symptoms and auxiliary examinations are as follows:\n" + \
-                "#Symptoms#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="Symptoms")) + \
-                "#Auxiliary Examinations#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="Auxiliary Examinations")) + \
+                "#Symptoms#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="症状", translate=self.translate)) + \
+                "#Auxiliary Examinations#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="辅助检查", translate=self.translate)) + \
                 "Based on the patient's condition, you have provided a preliminary diagnosis:\n" + \
-                "#Diagnosis#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="Diagnosis")) + \
-                "#Diagnostic Basis#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="Diagnostic Basis")) + \
-                "#Treatment Plan#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="Treatment Plan")) + \
+                "#Diagnosis#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="诊断结果", translate=self.translate)) + \
+                "#Diagnostic Basis#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="诊断依据", translate=self.translate)) + \
+                "#Treatment Plan#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="治疗方案", translate=self.translate)) + \
                 "(1) Below you will receive diagnostic opinions from other doctors, which also include diagnosis, diagnostic basis, and treatment plan. You need to critically review and analyze these opinions.\n" + \
                 "(2) If you find parts of other doctors' opinions more reasonable than yours, incorporate them into your own to improve your diagnosis.\n" + \
                 "(3) If you believe your diagnosis is more scientific and reasonable than others, stick to your opinion and keep it unchanged.\n" + \
@@ -222,9 +232,9 @@ class Doctor(Agent):
             for i, doctor in enumerate(doctors):
                 content += "##Doctor{}##\n\n#Diagnosis#\n{}\n\n#Diagnostic Basis#\n{}\n\n#Treatment Plan#\n{}\n\n".format(
                     doctor.name,
-                    doctor.get_diagnosis_by_patient_id(patient.id, key="Diagnosis"), 
-                    doctor.get_diagnosis_by_patient_id(patient.id, key="Diagnostic Basis"), 
-                    doctor.get_diagnosis_by_patient_id(patient.id, key="Treatment Plan")
+                    doctor.get_diagnosis_by_patient_id(patient.id, key="诊断结果", translate=self.translate), 
+                    doctor.get_diagnosis_by_patient_id(patient.id, key="诊断依据", translate=self.translate), 
+                    doctor.get_diagnosis_by_patient_id(patient.id, key="治疗方案", translate=self.translate)
                 )
 
         else: 
@@ -262,19 +272,19 @@ class Doctor(Agent):
             patient_id=patient.id
         )
 
-    def revise_diagnosis_by_others_in_parallel_with_critique(self, patient, doctors, host_critique=None):
+    def revise_diagnosis_by_others_in_parallel_with_critique(self, patient, doctors, host_critique=None, translate=False):
         # int_to_char = {0: "A", 1: "B", 2: "C", 3: "D"}
         # load the symptom and examination from the host
 
-        if self.translate:
+        if translate:
             system_message = "You are a professional doctor {}.\n".format(self.name) + \
                 "You are diagnosing a patient. The patient's symptoms and auxiliary examinations are as follows:\n" + \
-                "#Symptoms#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="Symptoms")) + \
-                "#Auxiliary Examinations#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="Auxiliary Examinations")) + \
+                "#Symptoms#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="Symptoms"), translate=translate) + \
+                "#Auxiliary Examinations#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="Auxiliary Examinations", translate=translate)) + \
                 "Based on the patient's condition, you have provided a preliminary diagnosis:\n" + \
-                "#Diagnosis#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="Diagnosis")) + \
-                "#Diagnostic Basis#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="Diagnostic Basis")) + \
-                "#Treatment Plan#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="Treatment Plan")) + \
+                "#Diagnosis#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="Diagnosis", translate=translate)) + \
+                "#Diagnostic Basis#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="Diagnostic Basis", translate=translate)) + \
+                "#Treatment Plan#\n{}\n\n".format(self.get_diagnosis_by_patient_id(patient.id, key="Treatment Plan", translate=translate)) + \
                 "(1) Below you will receive diagnostic opinions from other doctors, which also include diagnosis, diagnostic basis, and treatment plan. You need to critically review and analyze these opinions.\n" + \
                 "(2) During this process, please pay attention to the controversial points raised by the attending physician.\n" + \
                 "(3) If you find parts of other doctors' opinions more reasonable than yours, incorporate them into your own to improve your diagnosis.\n" + \
@@ -288,9 +298,9 @@ class Doctor(Agent):
             for i, doctor in enumerate(doctors):
                 content += "##Doctor{}##\n\n#Diagnosis#\n{}\n\n#Diagnostic Basis#\n{}\n\n#Treatment Plan#\n{}\n\n".format(
                     doctor.name,
-                    doctor.get_diagnosis_by_patient_id(patient.id, key="Diagnosis"), 
-                    doctor.get_diagnosis_by_patient_id(patient.id, key="Diagnostic Basis"), 
-                    doctor.get_diagnosis_by_patient_id(patient.id, key="Treatment Plan")
+                    doctor.get_diagnosis_by_patient_id(patient.id, key="Diagnosis", translate=translate), 
+                    doctor.get_diagnosis_by_patient_id(patient.id, key="Diagnostic Basis", translate=translate), 
+                    doctor.get_diagnosis_by_patient_id(patient.id, key="Treatment Plan", translate=translate)
                 )
 
             content += "##Chief Doctor##\n{}".format(host_critique)

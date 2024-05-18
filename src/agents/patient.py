@@ -20,6 +20,8 @@ class Patient(Agent):
         self.translate = args.translate
         self.system_message = "你是一个病人。这是你的基本资料。\n" + \
             "{}\n".format(patient_profile)
+        
+
 
         if "现病史" in medical_records:
             self.system_message += "<现病史> {}\n".format(medical_records["现病史"].strip())        
@@ -39,7 +41,7 @@ class Patient(Agent):
             "(6) 回答要口语化，尽可能短，提供最主要的信息即可。\n" + \
             "(7) 从<检查员>那里收到信息之后，将内容主动复述给<医生>。\n" + \
             "(8) 当医生给出诊断结果、对应的诊断依据和治疗方案后，在对话的末尾加上特殊字符<结束>。"
-
+        
         if self.translate:
             translator = GoogleTranslator(source='zh-CN', target='en')
             self.system_message = translator.translate(self.system_message)

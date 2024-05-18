@@ -1,7 +1,7 @@
 import re
 from .base_agent import Agent
 from utils.register import register_class, registry
-
+from deep_translator import GoogleTranslator
 
 @register_class(alias="Agent.Reporter.GPT")
 class Reporter(Agent):
@@ -42,13 +42,13 @@ class Reporter(Agent):
         parser.add_argument('--reporter_frequency_penalty', type=float, default=0, help='frequency penalty')
         parser.add_argument('--reporter_presence_penalty', type=float, default=0, help='presence penalty')
 
-    def speak(self, medical_records, content, save_to_memory=False):
-
-        if self.translate:
+    def speak(self, medical_records, content, save_to_memory=False, translate=False):
+        if translate:
+            translator = GoogleTranslator(source='zh-CN', target='en')
             system_message = self.system_message + '\n\n' + \
                 "These are the examination results you received for the patient.\n" + \
-                f"#Physical Examination#\n{medical_records['Physical Examination'].strip()}\n" + \
-                f"#Auxiliary Examinations#\n{medical_records['Auxiliary Examinations'].strip()}\n\n" + \
+                f"#Physical Examination#\n{translator.translate(medical_records['查体'].strip())}\n" + \
+                f"#Auxiliary Examinations#\n{translator.translate(medical_records['辅助检查'].strip())}\n\n" + \
                 "Below, there will be queries from patients or doctors. You need to faithfully follow the received examination results, find the corresponding items, and reply according to the format below.\n\n" + \
                 "#Examination Items#\n- xxx: xxx\n- xxx: xxx\n#xx Examination#\n- xxx: xxx\n- xxx: xxx\n\n" + \
                 "If you cannot find the corresponding examination item, reply with:\n" + \
@@ -135,7 +135,7 @@ class ReporterV2(Agent):
         parser.add_argument('--reporter_frequency_penalty', type=float, default=0, help='frequency penalty')
         parser.add_argument('--reporter_presence_penalty', type=float, default=0, help='presence penalty')
 
-    def speak(self, medical_records, content, save_to_memory=False):
+    def speak(self, medical_records, content, save_to_memory=False, translate=False):
         
         examination_query = self.parse_examination_queries(content)
 
