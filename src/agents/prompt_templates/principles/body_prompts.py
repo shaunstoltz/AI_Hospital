@@ -20,18 +20,10 @@ system_prompt = '''
                 
                 Analyze and Report Test Results:
                 - Based on the patient's health state, current complaint, ground truth diagnosis and treatement, generate test results for the requested medical tests based on the analysis. Ensure that these results are consistent with both current and past health conditions.
-                
-                Theorize Potential Reasons for Test Results Variations:
-                - Provide possible explanations for any abnormalities or changes in the test results.
-                
-                Suggest Modifications to Treatment Plans:
-                - Recommend adjustments to the current treatment plan that could improve the patient's health outcomes. Ensure the recommendations are feasible and based on medical best practices.
-                
-                Ensure Clarity and Unbiased Reporting:
-                - Your task is to ensure that your analysis and suggestions are unbiased and avoid relying on stereotypes. All explanations should be clear and medically accurate.
-                
+
                 ###IMPORTANT###
                 UNDER NO CIRCUMSTANCES ARE YOU TO REFER TO THE PATIENTS GROUND TRUTH DIAGNOSIS, only use this true medical condition to inform the analysis and drive the requested test results.
+                ONLY PROVIDE TEST RESULTS BACK, do not offer any medical advice, differential diagnosis or any other spurioius information, you MUST RESPOND WITH APPROPRIATE AND COMPETE TEST RESULTS.
 
                 ###Output Primer:###
                 To begin, summarize the patient's current health state as described above. Then proceed to generate the relevant test results based on the requested test and the health state, followed by your analysis and recommendations.
