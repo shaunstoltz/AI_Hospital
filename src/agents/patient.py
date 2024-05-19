@@ -17,12 +17,20 @@ class Patient(Agent):
             presence_penalty=args.patient_presence_penalty
         )
 
+        body = registry.get_class("Agent.PatientBody.GPT")(
+            
+        )
+
         self.translate = args.translate
+        self.approach = args.approach
+        self.profile = patient_profile
+        self.id = patient_id
+        self.medical_records = medical_records
+
+
         self.system_message = "你是一个病人。这是你的基本资料。\n" + \
             "{}\n".format(patient_profile)
         
-
-
         if "现病史" in medical_records:
             self.system_message += "<现病史> {}\n".format(medical_records["现病史"].strip())        
         if "既往史" in medical_records:
@@ -47,12 +55,15 @@ class Patient(Agent):
             translator = GoogleTranslator(source='zh-CN', target='en')
             self.system_message = translator.translate(self.system_message)
 
-        self.profile = patient_profile
+        if self.approach == "p26":
+
+            from prompt_templates.principles.patient_prompts import return_patient_systems_message
+
+            self.system_message = return_patient_systems_message(self)
 
 
-        super(Patient, self).__init__(engine)
-        self.id = patient_id
-        self.medical_records = medical_records
+
+        super(Patient, self).__init__(engine, body)
 
     @staticmethod
     def add_parser_args(parser):
@@ -66,7 +77,9 @@ class Patient(Agent):
         parser.add_argument('--patient_frequency_penalty', type=float, default=0, help='frequency penalty')
         parser.add_argument('--patient_presence_penalty', type=float, default=0, help='presence penalty')
 
-    def speak(self, role, content, save_to_memory=True):
+    def speak(self, role, content, save_to_memory=True, approach="base"):
+
+
         messages = [{"role": memory[0], "content": memory[1]} for memory in self.memories]
         messages.append({"role": "user", "content": f"<{role}> {content}"})
 
@@ -105,59 +118,7 @@ class Patient(Agent):
 
         return speak_to, responese
     
-    def return_body_test_results(self, tests_requested="", current_treatments="", translate=False):
 
-        system_prompt = '''
-                        ###Instruction###
-                        You are a sophisticated language model tasked with simulating the health state of a patient's body undergoing medical tests. Your output must reflect the patient's current and past health conditions, as well as the effects of any treatments they are receiving. Follow the detailed instructions below to generate accurate and contextually relevant responses.
-
-                        ###Example Scenario###
-                        Patient Profile: 65 years old male farmer.
-                        Body and pyschological profile: Woke up yesterday with a headache that will not go away. I speak directly, and fearfull of doctors, but do take my medicine regularly.
-                        Current complaint: Migrane Headache in the morning
-                        Ground truth diagnosis: Concussion
-                        Medical History(current and past): Current - recent fall with LOC. Past - Hypertension, Type 2 Diabetes, Chronic Kidney Disease. 
-                        Current Treatments: ACE inhibitors, Insulin, Dialysis
-                        Test requested: CBC, Chem20
-                        
-                        ###Steps:###
-                        Describe the Patient's Current Health State:
-                        - Detail the current symptoms and health indicators based on the provided medical history and treatments.
-                        
-                        Analyze and Report Test Results:
-                        - Based on the patient's health state, current complaint, ground truth diagnosis and treatement, generate test results for the requested medical tests based on the analysis. Ensure that these results are consistent with both current and past health conditions.
-                        
-                        Theorize Potential Reasons for Test Results Variations:
-                        - Provide possible explanations for any abnormalities or changes in the test results.
-                        
-                        Suggest Modifications to Treatment Plans:
-                        - Recommend adjustments to the current treatment plan that could improve the patient's health outcomes. Ensure the recommendations are feasible and based on medical best practices.
-                        
-                        Ensure Clarity and Unbiased Reporting:
-                        - Your task is to ensure that your analysis and suggestions are unbiased and avoid relying on stereotypes. All explanations should be clear and medically accurate.
-                        
-                        ###IMPORTANT###
-                        UNDEER NO CIRCUMSTANCES ARE YOU TO REFER TO THE PATIENTS GROUND TRUTH DIAGNOSIS, only use this true medical condition to inform the analysis and drive the requested test results.
-
-                        ###Output Primer:###
-                        To begin, summarize the patient's current health state as described above. Then proceed to generate the relevant test results based on the requested test and the health state, followed by your analysis and recommendations.
-                        '''
-
-        user_prompt = f'''
-                        Patient Profile: {self.medical_records['一般资料']}
-                        Body and pyschological profile: {self.profile}
-                        Current complaint: {self.medical_records['主诉']}
-                        Ground truth diagnosis: {self.medical_records['诊断结果']}
-                        Medical History (current and past): Current - {self.medical_records['现病史']} Past - {self.medical_records['既往史']}
-                        Current Treatments: {current_treatments}
-                        Test requested: {tests_requested}
-                        '''
-        messages = [
-            {"role": "system", "content": system_prompt}, 
-            {"role": "user", "content": user_prompt}
-        ]
-        response = self.engine.get_response(messages)
-        return response
 
 
 

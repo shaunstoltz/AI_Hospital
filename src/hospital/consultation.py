@@ -52,6 +52,7 @@ class Consultation:
         self.start_time = time.strftime('%Y-%m-%d %H:%M:%S')
 
         self.translate = args.translate
+        self.approach = args.approach
 
         if self.translate:
             self.medical_director_summary_query = \
@@ -78,6 +79,7 @@ class Consultation:
         parser.add_argument("--parallel", default=False, action="store_true", help="parallel diagnosis")
 
         parser.add_argument("--translate", default=False, type=bool, help="translate to english")
+        parser.add_argument("--approach", default="base", type=str, help="prompting approach to take")
 
 
     def remove_processed_patients(self):
@@ -131,6 +133,7 @@ class Consultation:
             print(dialog_history[-1]["turn"], dialog_history[-1]["role"])
             print(dialog_history[-1]["content"])
         for turn in range(self.max_conversation_turn):
+
             patient_response = patient.speak(dialog_history[-1]["role"], dialog_history[-1]["content"])
            
             dialog_history.append({"turn": turn+1, "role": "Patient", "content": patient_response})
@@ -144,12 +147,15 @@ class Consultation:
             speak_to, patient_response = patient.parse_role_content(patient, patient_response)
 
             if speak_to == "医生" or speak_to == "doctor":
-                # doctor_response = input()
                 doctor_response = self.doctor.speak(patient_response, patient.id)
                 dialog_history.append({"turn": turn+1, "role": "Doctor", "content": doctor_response})
             elif speak_to == "检查员" or speak_to == "examiner":
-                reporter_response = self.reporter.speak(patient.medical_records, patient_response)
-                dialog_history.append({"turn": turn+1, "role": "Reporter", "content": reporter_response})
+                if self.approach != "base":
+                    reporter_response = patient.body.speak_test_results(role="test_results", save_to_memory=True, test_requested=patient_response, current_treatments="", translate=False)
+                    dialog_history.append({"turn": turn+1, "role": "Test Results", "content": reporter_response})
+                else:
+                    reporter_response = self.reporter.speak(patient.medical_records, patient_response)
+                    dialog_history.append({"turn": turn+1, "role": "Reporter", "content": reporter_response})
                 doctor_response = self.doctor.speak(reporter_response, patient.id)
                 dialog_history.append({"turn": turn+1, "role": "Doctor", "content": doctor_response})
             else:
@@ -163,9 +169,6 @@ class Consultation:
                 print(dialog_history[-1]["turn"], dialog_history[-1]["role"])
                 print(dialog_history[-1]["content"])
         
-
-
-
         doctor_response = self.doctor.speak(self.medical_director_summary_query, patient.id)
         dialog_history.append({"turn": turn+1, "role": "Doctor", "content": doctor_response})
         if self.ff_print:

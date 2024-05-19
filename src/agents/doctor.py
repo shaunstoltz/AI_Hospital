@@ -19,6 +19,8 @@ class Doctor(Agent):
                 "(5) 最后根据患者的身体状况和检查结果，给出诊断结果、对应的诊断依据和治疗方案。\n" + \
                 "(6) 诊断结果需要准确到具体疾病，治疗方案中不要包含检查。"
                 
+
+            
         else: self.system_message = doctor_info
 
         self.doctor_greet = "您好，有哪里不舒服？"
@@ -359,17 +361,25 @@ class GPTDoctor(Doctor):
             frequency_penalty=args.doctor_frequency_penalty,
             presence_penalty=args.doctor_presence_penalty
         )
-        super(GPTDoctor, self).__init__(engine, doctor_info, name=name)
+
+
         # elf.engine = build_engine(engine_name=model)
         # print(self.memories[0][1])
+
+
+
+        super(GPTDoctor, self).__init__(engine, doctor_info, name=name)
+
         self.translate = args.translate
         if args.translate:
             translator = GoogleTranslator(source='zh-CN', target='en')
             self.system_message = translator.translate(self.system_message)
-            self.doctor_greet = translator.translate(self.doctor_greet)
-            
+            self.doctor_greet = translator.translate(self.doctor_greet)            
 
+        if args.approach == "p26":
+            from prompt_templates.principles.doctor_prompts import system_prompt_base
 
+            self.system_message = system_prompt_base
 
     @staticmethod
     def add_parser_args(parser):
