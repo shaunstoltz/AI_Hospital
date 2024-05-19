@@ -43,6 +43,7 @@ class CollaborativeConsultation:
                 patient_profile=patient_profile["profile"],
                 medical_records=patient_profile["medical_record"],
                 patient_id=patient_profile["id"],
+                jsonObj=patient_profile 
             )
             self.patients.append(patient)
             break
@@ -151,7 +152,7 @@ class CollaborativeConsultation:
                     if self.ff_print:
 
                         print(k, i, doctor.name, doctor.get_diagnosis_by_patient_id(patient.id, "诊断结果"))
-                        print(k, i, doctor.name, doctor.get_diagnosis_by_patient_id(patient.id, "Diagnosis"))
+                        #print(k, i, doctor.name, doctor.get_diagnosis_by_patient_id(patient.id, "Diagnosis"))
 
                 host_measurement = self.host.measure_agreement(self.doctors, patient)
                 diagnosis_in_discussion.append({

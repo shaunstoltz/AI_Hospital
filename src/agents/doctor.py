@@ -367,6 +367,7 @@ class GPTDoctor(Doctor):
             translator = GoogleTranslator(source='zh-CN', target='en')
             self.system_message = translator.translate(self.system_message)
             self.doctor_greet = translator.translate(self.doctor_greet)
+            
 
 
 
