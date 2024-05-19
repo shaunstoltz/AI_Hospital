@@ -13,7 +13,7 @@ from .doctor import (
 from .patient import Patient
 from .reporter import Reporter, ReporterV2
 from .host import Host
-
+from .body import PatientBody
 
 __all__ = [
     "Agent",
@@ -30,4 +30,5 @@ __all__ = [
     "Reporter",
     "ReporterV2",
     "Host",
+    "PatientBody"
 ]   

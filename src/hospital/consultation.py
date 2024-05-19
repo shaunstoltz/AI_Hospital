@@ -20,8 +20,13 @@ class Consultation:
         self.doctor = registry.get_class(args.doctor)(
             args,
         )
+
+
+
         
         self.patients = []
+
+        i = 1
         for patient_profile in patient_database:
             patient = registry.get_class(args.patient)(
                 args,
@@ -30,8 +35,14 @@ class Consultation:
                 patient_id=patient_profile["id"]
             )
 
-
             self.patients.append(patient)
+            if args.patientset > 0:
+                if args.patientset == i:
+                    break
+                else:
+                    i = i + 1
+
+
           
         self.reporter = registry.get_class(args.reporter)(args)
 
@@ -80,6 +91,7 @@ class Consultation:
 
         parser.add_argument("--translate", default=False, type=bool, help="translate to english")
         parser.add_argument("--approach", default="base", type=str, help="prompting approach to take")
+        parser.add_argument("--patientset", default=0, type=int, help="max number of patients to diagnose]")
 
 
     def remove_processed_patients(self):
@@ -132,8 +144,14 @@ class Consultation:
             print("--------------------------------------")
             print(dialog_history[-1]["turn"], dialog_history[-1]["role"])
             print(dialog_history[-1]["content"])
-        for turn in range(self.max_conversation_turn):
 
+        continue_conversation = True
+        turn = 0
+        conversation_reseter = 0
+
+        #for turn in range(self.max_conversation_turn):
+
+        while continue_conversation:
             patient_response = patient.speak(dialog_history[-1]["role"], dialog_history[-1]["content"])
            
             dialog_history.append({"turn": turn+1, "role": "Patient", "content": patient_response})
@@ -141,8 +159,9 @@ class Consultation:
                 print("--------------------------------------")
                 print(dialog_history[-1]["turn"], dialog_history[-1]["role"])
                 print(dialog_history[-1]["content"])
-            if "<结束>" in patient_response: break
-            if "<End>" in patient_response: break
+            if "<结束>" in patient_response: continue_conversation = False
+            if "<End>" in patient_response: continue_conversation = False
+
 
             speak_to, patient_response = patient.parse_role_content(patient, patient_response)
 
@@ -168,6 +187,10 @@ class Consultation:
                 print("--------------------------------------")
                 print(dialog_history[-1]["turn"], dialog_history[-1]["role"])
                 print(dialog_history[-1]["content"])
+            turn = turn + 1
+
+            if turn > self.max_conversation_turn:
+                continue_conversation = False
         
         doctor_response = self.doctor.speak(self.medical_director_summary_query, patient.id)
         dialog_history.append({"turn": turn+1, "role": "Doctor", "content": doctor_response})

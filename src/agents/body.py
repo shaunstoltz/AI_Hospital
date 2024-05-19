@@ -16,19 +16,21 @@ class PatientBody(Agent):
             presence_penalty=args.patient_presence_penalty
         )
 
-        super(PatientBody, self).__init__(engine)
-
-        self.systems_message = ""
+        self.system_message = ""
         if args.approach == "base" or args.approach == "p26":
-            from prompt_templates.principles.body_prompts import system_prompt, return_body_test_results_user_prompt
+            from agents.prompt_templates.principles.body_prompts import system_prompt, return_body_test_results_user_prompt
 
             self.system_message = system_prompt
-            self.return_body_test_results_user_prompt = return_body_test_results_user_prompt
+            self.return_body_test_results_user_prompt = return_body_test_results_user_prompt        
+
+        super(PatientBody, self).__init__(engine)
+
+
 
     def speak_test_results(self, role="test_results", save_to_memory=True, test_requested="", current_treatments="", translate=False):
 
 
-        messages = [{"role": "system", "content": self.systems_message}]
+        messages = [{"role": "system", "content": self.system_message}]
         content = self.return_body_test_results_user_prompt(self, tests_requested=test_requested, current_treatments=current_treatments, translate=translate)
         messages.append({"role": "user", "content": f"<{content}"})
 

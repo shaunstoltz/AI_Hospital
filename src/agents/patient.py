@@ -18,8 +18,10 @@ class Patient(Agent):
         )
 
         body = registry.get_class("Agent.PatientBody.GPT")(
-            
+            args
         )
+
+        self.body = body
 
         self.translate = args.translate
         self.approach = args.approach
@@ -57,13 +59,13 @@ class Patient(Agent):
 
         if self.approach == "p26":
 
-            from prompt_templates.principles.patient_prompts import return_patient_systems_message
+            from agents.prompt_templates.principles.patient_prompts import return_patient_systems_message
 
             self.system_message = return_patient_systems_message(self)
 
 
 
-        super(Patient, self).__init__(engine, body)
+        super(Patient, self).__init__(engine)
 
     @staticmethod
     def add_parser_args(parser):

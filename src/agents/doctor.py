@@ -377,7 +377,7 @@ class GPTDoctor(Doctor):
             self.doctor_greet = translator.translate(self.doctor_greet)            
 
         if args.approach == "p26":
-            from prompt_templates.principles.doctor_prompts import system_prompt_base
+            from agents.prompt_templates.principles.doctor_prompts import system_prompt_base
 
             self.system_message = system_prompt_base
 
