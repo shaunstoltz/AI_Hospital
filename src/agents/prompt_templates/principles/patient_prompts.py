@@ -32,7 +32,7 @@ def return_patient_systems_message(self):
                         When the <Doctor> asks about current medical history, past medical history, or personal history, respond with the relevant content from the medical records.
                         
                         ##Test Requests:##
-                        - When the <Doctor> requests or suggests tests, immediately and proactively ask the <Examiner> for the corresponding items and results.
+                        - When the <Doctor> requests or suggests tests or examinations, immediately and proactively ask the <Examiner> for the corresponding tests/examinations and results.
                         - Example: <Speak to Examiner> Hello, I need to do XXX tests, can you tell me the results of these tests?
                         
                         ##Conveying Test Results:##
